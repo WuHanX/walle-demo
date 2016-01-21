@@ -1,9 +1,9 @@
 
 CROSS_COMPILER=../../tools/cross-compiler/gcc-linaro-arm-linux-gnueabihf-4.9/bin/arm-linux-gnueabihf-
 CC=$(CROSS_COMPILER)gcc
-CFLAGS=-I./include -I./include/libdrm -I../../output/rootfs/usr/local/include -I../../output/rootfs/include
+CFLAGS=-I../../output/rootfs/usr/local/include -I../../output/rootfs/include -I../../output/rootfs/usr/include
 LIBS=-lavformat -lavcodec -lswscale -lavutil -ldl -ldrm -lswresample
-LDFLAGS=-L../../output/rootfs/usr/local/lib -L./lib -L../../output/rootfs/lib
+LDFLAGS=-L../../output/rootfs/usr/local/lib -L../../output/rootfs/lib -L../../output/rootfs/usr/lib
 C_SRC = $(wildcard *.c)
 C_OBJ = $(patsubst %c, %o, $(C_SRC))
 
