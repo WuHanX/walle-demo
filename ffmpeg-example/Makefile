@@ -1,5 +1,5 @@
 
-CROSS_COMPILER=../../tools/cross-compiler/gcc-linaro-arm-linux-gnueabihf-4.9/bin/arm-linux-gnueabihf-
+CROSS_COMPILER=../../tools/cross-compiler/gcc-linaro-arm-linux-gnueabihf-4.8/bin/arm-linux-gnueabihf-
 CC=$(CROSS_COMPILER)gcc
 CFLAGS=-I../../output/rootfs/usr/local/include -I../../output/rootfs/include -I../../output/rootfs/usr/include
 LIBS=-lavformat -lavcodec -lswscale -lavutil -ldl -ldrm -lswresample
