@@ -37,15 +37,25 @@ int main(int argc, const char *argv[])
     int numBytes;  
     uint8_t *buffer;  
 
+    // register all encoder/decoder components
     av_register_all();
-    /* decoder init */
+
+/* decoder init */
+
+    // open the media file
     if(avformat_open_input(&pFormatCtx, argv[1], NULL, NULL) != 0) {  
         return -1;  
     }  
+
+    // find the audio/video stream information
     if(avformat_find_stream_info(pFormatCtx, NULL) < 0) {  
         return -1;  
     }  
+
+    // dump audio/video format information
     av_dump_format(pFormatCtx, -1, argv[1], 0);  
+
+    // get video stream's index
     videoStream = -1;  
     for(i=0; i<pFormatCtx->nb_streams; i++)  
         if(pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {  
@@ -55,22 +65,28 @@ int main(int argc, const char *argv[])
     if(videoStream == -1) {  
         return -1;  
     }  
+
+    // found decoder for the video stream
     pCodecCtx = pFormatCtx->streams[videoStream]->codec;  
     pCodec = avcodec_find_decoder(pCodecCtx->codec_id);  
     if(pCodec == NULL) {  
         return -1;  
     }  
+
+    // init decoder
     if(avcodec_open2(pCodecCtx, pCodec, NULL) < 0) {  
         return -1;  
     }
 
-    /* encoder init */
+/* encoder init */
+
+    // find encoder for the vider stream
     pEncCodec = avcodec_find_encoder(pCodecCtx->codec_id);
     if (pEncCodec == NULL) {
         printf("could not find enc codec %d\n", pCodecCtx->codec_id);
         return -1;
     }
-
+    // setup encoder parameter
     pEncCodecCtx = avcodec_alloc_context3(pEncCodec);
 
     pEncCodecCtx->width = pCodecCtx->width;
@@ -81,6 +97,7 @@ int main(int argc, const char *argv[])
     pEncCodecCtx->bit_rate = 1800000;
     pEncCodecCtx->level = pCodecCtx->level;
 
+    // init encoder
     if (avcodec_open2(pEncCodecCtx, pEncCodec, NULL) < 0) {
         printf("enc codec open failed\n");
         return -1;
@@ -90,10 +107,12 @@ int main(int argc, const char *argv[])
     pEncOutFile = fopen("output.h264", "wb");
     av_init_packet(&encPacket);
 
+    // alloc frame struct for decoder
     pFrame = avcodec_alloc_frame();  
     if(pFrame == NULL) {  
         return -1;  
     }  
+    // alloc frame struct and buffer for RGB format convert
     pFrameRGB = avcodec_alloc_frame();  
     if(pFrameRGB == NULL) {  
         return -1;  
@@ -102,7 +121,9 @@ int main(int argc, const char *argv[])
     buffer = av_malloc(numBytes);  
     avpicture_fill((AVPicture *)pFrameRGB, buffer, PIX_FMT_RGB24, pCodecCtx->width, pCodecCtx->height);  
     i = 0;  
+    // read frame data from media file
     while(av_read_frame(pFormatCtx, &packet) >=0) {  
+    	// just process video stream
         if(packet.stream_index == videoStream) {  
             /* first we get a decoded frame */
             avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);  
@@ -115,10 +136,12 @@ int main(int argc, const char *argv[])
                     exit(1);  
                 }  
                 sws_scale(img_convert_ctx,(const uint8_t * const *)pFrame->data, pFrame->linesize, 0 , pCodecCtx->height, pFrameRGB->data, pFrameRGB->linesize);  
+		// just only save 50 decode frame at the beginning
                 if(i < 50) {  
                     SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height, i);  
                 }
 
+                // alloc frame struct and buffer for encoder
                 AVFrame *tmpFrame = avcodec_alloc_frame();
                 tmpFrame->format = pFrame->format;
                 int h_align, w_align;
@@ -137,6 +160,7 @@ int main(int argc, const char *argv[])
 
                 /* encode a frame */
                 avcodec_encode_video2(pEncCodecCtx, &encPacket, tmpFrame, &gotPacket);
+		// just only save 100 encode frame at the beginning
                 if (gotPacket && i < 100) {
                     if (i == 0) {
                         fwrite(pEncCodecCtx->extradata, 1, pEncCodecCtx->extradata_size, pEncOutFile);
@@ -147,10 +171,9 @@ int main(int argc, const char *argv[])
                 }
                 av_free(tmpFrame->data[0]);
                 av_free(tmpFrame);
+                av_free_packet(&encPacket);
                 i++;
             }
-            av_free_packet(&encPacket);
-
         }  
         av_free_packet(&packet);  
     }
